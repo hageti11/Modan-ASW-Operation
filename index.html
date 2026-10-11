@@ -207,7 +207,7 @@ function simUpdate(){
  if(sonarCd>0)sonarCd--;if(shake>0)shake*=.9;
  cam.x=mogami.x;cam.y=mogami.y;
  if(!NET.on&&!subs.length&&!waveT){waveT=240;logm('WAVE '+wave+' クリア! 補給・応急修理を実施中')}
- if(waveT&&--waveT==0){wave++;ships.forEach(s=>{if(!s.dead)s.hp=Math.min(100,s.hp+25)});mogami.vla=Math.min(8,mogami.vla+4);mogami.tor=Math.min(6,mogami.tor+3);ships.forEach(s=>s.sam=Math.min(s.t=='maya'?32:s.t=='mogami'?16:8,s.sam+8));spawnWave()}
+ if(waveT&&--waveT==0){wave++;ships.forEach(s=>{if(!s.dead)s.hp=Math.min(100,s.hp+25)});mogami.vla=Math.min(8,mogami.vla+4);mogami.tor=Math.min(6,mogami.tor+3);ships.forEach(s=>s.sam=Math.min(s.t=='maya'?96:s.t=='mogami'?11:22,s.sam+8));spawnWave()}
  if(NET.on)onlineEnd();else if(mogami.dead||izumo.dead)end();
  ['h0','h1','h2'].forEach((id,i)=>{const e=$(id),h=ships[i].hp;e.style.width=h+'%';e.style.background=h>60?'#00e0a0':h>30?'#ffb020':'#ff3344'});
  $('wv').textContent=wave;$('scr').textContent=score;$('bst').textContent=Math.max(best,score);$('nv').textContent=mogami.vla;$('nt').textContent=mogami.tor;$('ns').textContent=maya.sam;
@@ -468,6 +468,21 @@ const bx=document.createElement('button');bx.className='btn';bx.id='bx';bx.style
 addEventListener('keydown',e=>{if(e.code=='KeyF')cmd(5);else if(e.code=='KeyX')swapReq()});
 const _hd=hud;hud=function(){_hd();const sb=subs.find(u=>u.human);if(role=='sub'&&sb)$('ns').textContent=Math.round(Math.max(0,sb.hp))+' / 魚雷'+(sb.tp||0);$('bf').firstChild.textContent='陣形: '+FORMS[formIdx][0];$('bx').style.display=NET.on?'':'none'};
 const _ov=overlay;overlay=function(){_ov();if(state=='title')return;[...torps,...etorps].forEach(q=>{if(!q.e)return;const p=sp(q);ctx.strokeStyle='#ff4455';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,9*zoom,0,TAU);ctx.stroke()})};
+
+// ===== BLOCK v5: 諸元・残弾パネル / 史実寄りの弾数 =====
+const _s5=start;start=function(){_s5();maya.sam=96;izumo.sam=22;mogami.sam=11};
+const specBtn=document.createElement('button');specBtn.className='btn';specBtn.id='bspec';specBtn.style.gridColumn='1/3';specBtn.innerHTML='諸元・残弾<small>[I] 艦艇スペック表示</small>';$('btns').appendChild(specBtn);
+const specPanel=document.createElement('div');specPanel.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(8,20,32,.94);border:1px solid #00d2ff;border-radius:10px;padding:14px 18px;font-size:12px;line-height:1.7;z-index:8;display:none;max-width:92vw;pointer-events:none';document.body.appendChild(specPanel);
+function togSpec2(){specPanel.style.display=specPanel.style.display=='none'?'block':'none'}
+specBtn.onclick=togSpec2;addEventListener('keydown',e=>{if(e.code=='KeyI')togSpec2()});
+function specHTML2(){const sb=subs.find(u=>u.human);
+ return `<b style="color:#00f0ff">艦艇諸元(参考値・Wikipedia等で要確認)</b><br>
+<b>もがみ</b> 全長130m/基準3,900t/30kt超 — 5インチ砲, Mk41 VLS 16セル, 12式SSM×8, SeaRAM, 324mm魚雷管×6<br>　残弾: VLA ${mogami.vla} / 短魚雷 ${mogami.tor} / SAM ${mogami.sam}<br>
+<b>いずも</b> 全長248m/基準19,500t/30kt — SeaRAM×2, ファランクス×2, 搭載機14機(F-35B運用改修)<br>　残弾: SAM ${izumo.sam}<br>
+<b>まや</b> 全長170m/基準8,200t/30kt — 5インチ砲, Mk41 VLS 96セル, ファランクス×2, SPY-1D(V), 324mm魚雷管×6<br>　残弾: SAM ${maya.sam}${maya.asr!==undefined?' / アスロック '+maya.asr:''}<br>
+<b>敵攻撃原潜(架空)</b>${sb?' 魚雷 '+(sb.tp??'-')+' / ミサイル '+sb.miss+' / デコイ '+sb.dec:' 魚雷・ミサイル・デコイを搭載'}<br>
+<span style="color:#8edeff">速度・射程はゲーム用に縮尺調整しています</span>`}
+const _ov5=overlay;overlay=function(){_ov5();if(state!='title'&&specPanel.style.display!='none')specPanel.innerHTML=specHTML2()};
 
 function loop(){update();draw();requestAnimationFrame(loop)}
 show('NAVAL OPS 現代艦隊対潜・対空演習',$('od').innerHTML,'作戦開始',start);requestAnimationFrame(loop);
