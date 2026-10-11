@@ -213,7 +213,7 @@ function simUpdate(){
  $('wv').textContent=wave;$('scr').textContent=score;$('bst').textContent=Math.max(best,score);$('nv').textContent=mogami.vla;$('nt').textContent=mogami.tor;$('ns').textContent=maya.sam;
  $('bs').classList.toggle('off',sonarCd>0);if(role!='sub')$('bs').firstChild.textContent=sonarCd>0?'ソナー再充填 '+Math.ceil(sonarCd/60)+'s':'アクティブソナー';
 }
-function draw(){
+function baseDraw(){
  const g=ctx.createRadialGradient(W/2,H/2,80,W/2,H/2,Math.max(W,H));g.addColorStop(0,'#134468');g.addColorStop(.6,'#0e334f');g.addColorStop(1,'#071b2b');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
  if(state=='title')return;
  ctx.save();ctx.translate(W/2,H/2);ctx.scale(zoom,zoom);ctx.translate(-cam.x+rand(-shake,shake),-cam.y+rand(-shake,shake));
@@ -284,7 +284,7 @@ function subShoot(s){if(s.miss<=0||s.cd>0)return;let b=null,ba=9;for(const t of 
 function subDecoy(s){if(s.dec<=0||s.dc>0)return;s.dec--;s.dc=260;decoys.push({x:s.x,y:s.y,life:300});logm('音響デコイ展開')}
 // ---- commands
 function runCmd(side,k){if(state!='playing')return;if(side=='sub'){const s=subs.find(u=>u.human);if(!s)return;if(k==0)subShoot(s);else if(k==1)subDecoy(s);else if(k==2){s.boost=!s.boost;logm(s.boost?'高速航行(探知されやすい)':'静粛航行')}}
- else if(k==0)sonar();else if(k==1)heli();else if(k==2)fire(0);else if(k==3)fire(1)}
+ else if(k==0)sonar();else if(k==1)heli();else if(k==2)fire(0);else if(k==3)fire(1);else if(k==4)p1()}
 function cmd(k){if(NET.on&&!NET.host){NET.conn&&NET.conn.send({c:k})}else runCmd(role,k)}
 [0,1,2,3].forEach(i=>$(['bs','bh','bt','bv'][i]).onclick=()=>cmd(i));
 function setRole(r){role=r;const sub=r=='sub',L=sub?['対艦ミサイル','デコイ展開','高速/静粛','']:['アクティブソナー','SH-60K 発艦','324mm 短魚雷','VLA 対潜ミサイル'],K=['Space','H','T','V'],S=sub?['6発・探知されやすい','4基','高速は探知リスク','']:['広域探信','最大6機','探知目標へ自動照準','遠距離投射'];
@@ -299,7 +299,7 @@ function onlineEnd(){if(NET.w)return;if(!subs.length)NET.w='surface';else if(mog
 function result(w){state='over';const win=w==role;show(win?'作戦成功 — 勝利':'作戦失敗 — 敗北',w=='surface'?'敵潜水艦を撃沈しました。':'水上艦隊の主力が大破しました。','メニューへ',()=>location.reload())}
 function update(){if(state!='playing'||paused)return;readKeys();if(NET.on&&!NET.host){guestUpdate();return}
  if(NET.on){if(role=='surface'){joy=jin;joyU=rjoy}else{joyU=jin;joy=rjoy}}else joy=jin;
- simUpdate();hud();focus();if(NET.on)hostPost()}
+ extraSim();simUpdate();hud();focus();if(NET.on)hostPost()}
 // ---- network
 const FS=['x','y','a','v','hp','dead','sam','vla','tor'],FU=['x','y','a','v','hp','det','exp','miss','dec','human','boost'],FH=['x','y','a','dip'],F3=['x','y','a'],FT=['x','y','a','v','fly'],FD=['x','y','life'],FB=['x','y'];
 const pk=(a,f)=>a.map(o=>f.map(k=>o[k])),up=(rows,f,mk)=>rows.map(r=>{const o=mk();f.forEach((k,i)=>o[k]=r[i]);return o});
@@ -364,6 +364,78 @@ function noiseBurst(d,v,fq){try{if(!ac)return;const b=ac.createBuffer(1,ac.sampl
 const _sn2=snd;snd=function(t){_sn2(t);if(t=='boom')noiseBurst(.7,.35,900)};
 const _st=start;start=function(){_st();ambient()};
 const _up=update;update=function(){_up();if(amb&&mogami)amb.o.frequency.value=48+mogami.v*6};
+
+// ===== EXTRA: models / tactical HUD / ocean glints =====
+F35.prototype.draw=function(){if(fog(this))return;const a=this.a+Math.PI/2;ctx.save();ctx.translate(this.x+10,this.y+14);ctx.rotate(a);ctx.fillStyle='rgba(0,10,20,.25)';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(11,8);ctx.lineTo(-11,8);ctx.fill();ctx.restore();
+ ctx.save();ctx.translate(this.x,this.y);ctx.rotate(a);
+ ctx.fillStyle='#8798ab';ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(3,-6);ctx.lineTo(13,5);ctx.lineTo(12,9);ctx.lineTo(4,7);ctx.lineTo(0,11);ctx.lineTo(-4,7);ctx.lineTo(-12,9);ctx.lineTo(-13,5);ctx.lineTo(-3,-6);ctx.closePath();ctx.fill();ctx.strokeStyle='#4b5a6b';ctx.lineWidth=1;ctx.stroke();
+ ctx.fillStyle='#1c2733';ctx.beginPath();ctx.ellipse(0,-6,1.8,4,0,0,TAU);ctx.fill();R('#6b7d90',-6,6,3,5);R('#6b7d90',3,6,3,5);
+ const f=.7+Math.random()*.5;ctx.fillStyle=`rgba(255,170,60,${.5*f})`;ctx.beginPath();ctx.moveTo(-1.8,10);ctx.lineTo(0,10+9*f);ctx.lineTo(1.8,10);ctx.fill();ctx.restore()};
+Heli.prototype.draw=function(){if(fog(this))return;ctx.save();ctx.translate(this.x+8,this.y+12);ctx.rotate(this.a+Math.PI/2);ctx.globalAlpha=.22;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(0,0,5,17,0,0,TAU);ctx.fill();ctx.restore();
+ ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.a+Math.PI/2);
+ ctx.fillStyle='#6f8294';ctx.fillRect(-1.6,6,3.2,16);ctx.fillStyle='#8da0b3';ctx.beginPath();ctx.ellipse(0,0,5.5,12,0,0,TAU);ctx.fill();ctx.fillStyle='#1c2733';ctx.beginPath();ctx.ellipse(0,-6,3.4,3.6,0,0,TAU);ctx.fill();
+ const r=Date.now()*.05;ctx.strokeStyle='rgba(220,240,255,.75)';ctx.lineWidth=1.6;for(let i=0;i<4;i++){const q=r+i*Math.PI/2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(q)*26,Math.sin(q)*26);ctx.stroke()}
+ ctx.fillStyle='rgba(200,230,255,.08)';ctx.beginPath();ctx.arc(0,0,26,0,TAU);ctx.fill();
+ if(this.dip>0){ctx.strokeStyle='rgba(0,240,255,.7)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(0,0,60+Math.sin(Date.now()*.01)*8,0,TAU);ctx.stroke()}ctx.restore()};
+let flash=0,lastHp=100;
+function edge(o,col,lbl){const dx=o.x-cam.x,dy=o.y-cam.y;if(Math.abs(dx)<W/2-24&&Math.abs(dy)<H/2-24)return;
+ const k=Math.min((W/2-34)/(Math.abs(dx)||1e-6),(H/2-34)/(Math.abs(dy)||1e-6)),px=W/2+dx*k,py=H/2+dy*k;
+ ctx.save();ctx.translate(px,py);ctx.rotate(Math.atan2(dy,dx));ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(11,0);ctx.lineTo(-7,-7);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.restore();
+ ctx.fillStyle=col;ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText(lbl+Math.round(Math.hypot(dx,dy)/10)+'m',px,py+(py<H/2?22:-12))}
+function draw(){baseDraw();if(state=='title')return;
+ const me=role=='sub'?subs.find(u=>u.human):mogami,t=Date.now()*.001;
+ ctx.save();ctx.fillStyle='#e6f8ff';for(let i=0;i<80;i++){const gx=(((i*211-cam.x*.9)%(W+40))+W+40)%(W+40)-20,gy=(((i*97-cam.y*.9)%(H+40))+H+40)%(H+40)-20,s=Math.sin(t*1.6+i*1.7);if(s>.55){ctx.globalAlpha=(s-.55)*.35;ctx.fillRect(gx,gy,5+i%4,1.2)}}ctx.restore();
+ if(me&&role=='surface'&&sonarCd<=0&&!mogami.dead){ctx.save();ctx.translate(W/2-cam.x,H/2-cam.y);ctx.strokeStyle='rgba(0,240,255,.18)';ctx.setLineDash([10,14]);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mogami.x,mogami.y,1600,0,TAU);ctx.stroke();ctx.strokeStyle='rgba(120,200,255,.14)';ctx.beginPath();ctx.arc(mogami.x,mogami.y,650,0,TAU);ctx.stroke();ctx.restore()}
+ if(role=='sub'){subs.forEach(s=>{});ships.forEach(s=>{if(!s.dead&&D(s,cam)<2400)edge(s,'#5fd0ff','艦 ')});torps.forEach(q=>{if(D(q,cam)<900&&!q.fly)edge(q,'#ffd040','魚雷 ')})}
+ else{subs.forEach(s=>{if(s.det>0)edge(s,'#ff4466','敵潜 ')});missiles.forEach(m=>edge(m,'#ff9900','ミサイル '))}
+ if(me){if(me.hp<lastHp-1)flash=.5;lastHp=me.hp}
+ if(flash>.02){const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.25,W/2,H/2,Math.max(W,H)*.7);g.addColorStop(0,'rgba(255,0,30,0)');g.addColorStop(1,`rgba(255,20,40,${flash})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);flash*=.92}
+ if(me&&state=='playing'){const hd=((me.a*180/Math.PI+90)%360+360)%360;ctx.fillStyle='rgba(8,20,32,.7)';ctx.fillRect(W/2-46,H-34,92,22);ctx.fillStyle='#8edeff';ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.fillText('HDG '+String(Math.round(hd)).padStart(3,'0')+'°  '+((me.v||0)*10|0)+'kt',W/2,H-18)}}
+
+// ===== EXTRA BLOCK v3: 味方艦の攻撃・P-1・演出 =====
+const ST={fired:0,hits:0,kills:0,mc:0,mh:100,sl:0,ph:new Map()};let p1cd=0,lflash=0;
+SN.alarm=['square',880,500,.45,.12];
+const vib=n=>{try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}};
+const _f=fire;fire=function(v){const n=torps.length;_f(v);if(torps.length>n)ST.fired++};
+const _sx=start;start=function(){_sx();ST.fired=ST.hits=ST.kills=0;ST.mc=0;ST.mh=100;ST.sl=0;ST.ph.clear();p1cd=0;logm('ヒント: ソナー・ヘリ・P-1で探知 → 魚雷で撃沈。まやといずも(ヘリ)も自動で対潜攻撃します')};
+const _sw=spawnWave;spawnWave=function(){_sw();if(!NET.on&&wave%4==0&&subs.length){subs[0].hp=200;logm('警報: 大型攻撃原潜を確認(高耐久)',1)}};
+const _ss=show;show=function(t,d,b,f){if(t.startsWith('作戦')&&state=='over')d+='<br>撃沈 '+ST.kills+' / 魚雷発射 '+ST.fired+' / 命中 '+ST.hits;_ss(t,d,b,f)};
+const _sr=setRole;setRole=function(r){_sr(r);$('bp').style.display=r=='sub'?'none':''};
+const b5=document.createElement('button');b5.className='btn';b5.id='bp';b5.style.gridColumn='1/3';b5.innerHTML='P-1 哨戒機<small>[B] 前方にソノブイ5基散布</small>';$('btns').appendChild(b5);b5.onclick=()=>cmd(4);
+addEventListener('keydown',e=>{if(e.code=='KeyB')cmd(4)});
+function p1(){if(state!='playing'||mogami.dead)return;if(p1cd>0){logm('P-1 再出撃準備中',1);return}p1cd=1800;
+ for(let i=1;i<=5;i++)buoys.push({x:mogami.x+Math.cos(mogami.a)*(400+i*380)+rand(-120,120),y:mogami.y+Math.sin(mogami.a)*(400+i*380)+rand(-120,120),life:1800,t:0});logm('P-1哨戒機: 前方にソノブイ5基散布');snd('launch')}
+function asroc(s,tg){torps.push({x:s.x,y:s.y,a:Math.atan2(tg.y-s.y,tg.x-s.x),v:8.5,fly:true,fd:cl(D(tg,s)-130,150,1500),life:900,alive:true});s.asr--;s.ac=420;ST.fired++;logm(s.n+': アスロック発射!');snd('launch')}
+function extraSim(){
+ if(p1cd>0)p1cd--;const tgs=subs.filter(u=>u.alive&&u.det>0);
+ ships.forEach(s=>{if(s.dead)return;if(s.asr===undefined){s.asr=s.t=='maya'?8:0;s.ac=0;s.gc=0;s.rc=0}
+  if(s.ac>0)s.ac--;
+  if(s.t!='mogami'&&s.asr>0&&s.ac<=0){let b=null;for(const u of tgs)if(D(u,s)<3000&&(!b||D(u,s)<D(b,s)))b=u;if(b)asroc(s,b)}
+  if(++s.rc>300){s.rc=0;if(s.hp<100)s.hp=Math.min(100,s.hp+1)}
+  if(s.t!='izumo'&&s.gc<=0){for(const m of missiles){if(m.alive&&D(m,s)<650&&Math.random()<.5){s.gc=40;const a=Math.atan2(m.y-s.y,m.x-s.x);for(let i=1;i<6;i++)P(s.x+Math.cos(a)*(40+i*30),s.y+Math.sin(a)*(40+i*30),'#ffe9a0',2,8,0,0);if(Math.random()<.18){m.alive=false;boom(m.x,m.y,8,.7);logm(s.n+': 127mm砲で迎撃')}break}}}else s.gc--});
+ helis.forEach(h=>{h.tc=(h.tc||300)-1;if(h.dip>0||h.tc>0)return;for(const u of tgs)if(D(u,h)<520){torps.push({x:h.x,y:h.y,a:Math.atan2(u.y-h.y,u.x-h.x),v:3.8,fly:false,fd:0,life:500,alive:true});h.tc=900;ST.fired++;logm('SH-60K: 短魚雷を投下!');snd('splash');break}});
+ missiles.forEach(m=>{if(m.alive&&!m.ch&&m.t&&D(m,m.t)<280){m.ch=1;if(Math.random()<.3){m.alive=false;for(let i=0;i<10;i++)P(m.x,m.y,'#e8f4ff',rand(3,6),50);boom(m.x,m.y,6,.6);logm(m.t.n+': チャフ欺瞞成功!')}}});
+ if(missiles.length>ST.mc)snd('alarm');ST.mc=missiles.length;
+ if(mogami.hp<ST.mh)vib(90);ST.mh=mogami.hp;
+ subs.forEach(u=>{const p=ST.ph.get(u);if(p!==undefined&&u.hp<p)ST.hits++;ST.ph.set(u,u.hp)});
+ if(subs.length<ST.sl)ST.kills+=ST.sl-subs.length;ST.sl=subs.length}
+// ---- overlay (昼夜・雨・ラベル・警告矢印)
+const sp=o=>({x:W/2+(o.x-cam.x)*zoom,y:H/2+(o.y-cam.y)*zoom});
+function overlay(){if(state=='title')return;const T=Date.now()*.001;
+ ctx.fillStyle=`rgba(0,6,24,${.3*(1-Math.cos(T/40))/2})`;ctx.fillRect(0,0,W,H);
+ if(!NET.on&&wave>0&&wave%3==0){ctx.strokeStyle='rgba(200,225,255,.25)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<90;i++){const x=(i*131.7)%W,y=(i*57.3+T*520)%H;ctx.moveTo(x,y);ctx.lineTo(x-4,y+14)}ctx.stroke();
+  if(lflash<=0&&Math.random()<.002){lflash=7;snd('boom')}}
+ if(lflash>0){ctx.fillStyle=`rgba(255,255,255,${lflash/16})`;ctx.fillRect(0,0,W,H);lflash--}
+ ctx.textAlign='center';
+ ships.forEach(s=>{if(fog(s))return;const p=sp(s);if(p.x<-100||p.x>W+100||p.y<-150||p.y>H+150)return;const oy=s.t=='izumo'?-138:s.t=='maya'?-100:-84;
+  ctx.font='bold 10px sans-serif';ctx.fillStyle='rgba(220,245,255,.9)';ctx.fillText(s.n.replace(/^(護衛艦|ヘリ空母|イージス艦)/,''),p.x,p.y+oy*zoom);
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(p.x-22,p.y+oy*zoom+4,44,4);ctx.fillStyle=s.hp>60?'#00e0a0':s.hp>30?'#ffb020':'#ff3344';ctx.fillRect(p.x-22,p.y+oy*zoom+4,44*Math.max(0,s.hp)/100,4)});
+ if(role!='sub'){subs.forEach(u=>{if(!(u.det>0))return;const lab='SUB '+Math.round(D(u,mogami)*2)+'m';if(1){const p=sp(u),r=34+Math.sin(T*6)*3;ctx.strokeStyle='#ff2244';ctx.lineWidth=2;ctx.beginPath();[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(c=>{ctx.moveTo(p.x+c[0]*r,p.y+c[1]*(r-12));ctx.lineTo(p.x+c[0]*r,p.y+c[1]*r);ctx.lineTo(p.x+c[0]*(r-12),p.y+c[1]*r)});ctx.stroke();ctx.fillStyle='#ff6677';ctx.font='bold 11px sans-serif';ctx.fillText(lab,p.x,p.y+r+14)}});
+  }
+ ctx.textAlign='left';
+ if(p1cd>=0&&$('bp'))$('bp').firstChild.textContent=p1cd>0?'P-1 再出撃まで '+Math.ceil(p1cd/60)+'s':'P-1 哨戒機';
+}
+const _dr=draw;draw=function(){_dr();overlay()};
 
 function loop(){update();draw();requestAnimationFrame(loop)}
 show('NAVAL OPS 現代艦隊対潜・対空演習',$('od').innerHTML,'作戦開始',start);requestAnimationFrame(loop);
