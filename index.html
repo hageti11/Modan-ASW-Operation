@@ -52,7 +52,7 @@ b.v{color:#fff;font-size:14px}
 <div id="od">【編成】<b>もがみ型(旗艦・操艦)</b> / <b>いずも型</b>(F-35B CAP・SH-60K) / <b>まや型</b>(イージス)<br>
 操作: 左スティック or WASD・矢印で操艦 / P で一時停止<br>
 攻撃原潜は静かに接近し、対艦ミサイルとデコイで反撃します。ソナー・ヘリ・ソノブイで捕捉し、魚雷で撃沈せよ。<br>ウェーブが進むほど敵潜は増えます。</div>
-<button id="ob">作戦開始</button>
+<div style="margin-bottom:10px;color:#c0dce8;font-size:13px">難易度 <select id="df" style="font-size:14px;padding:6px 10px;border-radius:8px;border:1px solid #00d2ff;background:#0c263e;color:#fff"><option value="0">易しい</option><option value="1" selected>普通</option><option value="2">難しい</option></select><br><small>オンラインでは潜水艦のHP補正(130/100/70)になります</small></div><button id="ob">作戦開始</button>
 <div id="lob"><div>― オンライン対戦 (P2P) ―</div><select id="rs"><option value="surface">自分=水上艦隊 / 相手=潜水艦</option><option value="sub">自分=潜水艦 / 相手=水上艦隊</option></select><button id="mk">部屋を作る</button><br><input id="cd" placeholder="部屋コード" maxlength="4" size="8"><button id="jn">参加する</button><div id="ns2"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
@@ -87,7 +87,7 @@ class Ship{constructor(x,y,n,t){this.x=x;this.y=y;this.n=n;this.t=t;this.a=0;thi
    if(joy.x||joy.y){const d=nrm(Math.atan2(joy.y,joy.x)-this.a);this.a+=cl(d,-this.turn,this.turn);const ts=Math.min(1,Math.hypot(joy.x,joy.y))*this.max;this.v+=this.v<ts?.04:-.04}
    else this.v=Math.max(0,this.v-.016)
   }else{
-   const dx=mogami.x+(this.t=='izumo'?-350:350)-this.x,dy=mogami.y+220-this.y,d=Math.hypot(dx,dy);
+   const fo=FORM(this),dx=mogami.x+fo[0]-this.x,dy=mogami.y+fo[1]-this.y,d=Math.hypot(dx,dy);
    if(d>70){const df=nrm(Math.atan2(dy,dx)-this.a);this.a+=cl(df,-this.turn,this.turn);this.v=Math.min(this.max,d*.015)}else this.v*=.94
   }
   this.x+=Math.cos(this.a)*this.v;this.y+=Math.sin(this.a)*this.v;
@@ -283,8 +283,8 @@ function subShoot(s){if(s.miss<=0||s.cd>0)return;let b=null,ba=9;for(const t of 
  if(!b){logm('射程内に目標なし',1);return}missiles.push({x:s.x,y:s.y,t:b,a:0,alive:true,tg:0});s.miss--;s.cd=300;s.det=Math.max(s.det,220);s.exp=220;P(s.x,s.y,'#fff',14,40,0,-1);logm('対艦ミサイル発射! → '+b.n);snd('launch')}
 function subDecoy(s){if(s.dec<=0||s.dc>0)return;s.dec--;s.dc=260;decoys.push({x:s.x,y:s.y,life:300});logm('音響デコイ展開')}
 // ---- commands
-function runCmd(side,k){if(state!='playing')return;if(side=='sub'){const s=subs.find(u=>u.human);if(!s)return;if(k==0)subShoot(s);else if(k==1)subDecoy(s);else if(k==2){s.boost=!s.boost;logm(s.boost?'高速航行(探知されやすい)':'静粛航行')}}
- else if(k==0)sonar();else if(k==1)heli();else if(k==2)fire(0);else if(k==3)fire(1);else if(k==4)p1()}
+function runCmd(side,k){if(state!='playing')return;if(side=='sub'){const s=subs.find(u=>u.human);if(!s)return;if(k==0)subShoot(s);else if(k==1)subDecoy(s);else if(k==2){s.boost=!s.boost;logm(s.boost?'高速航行(探知されやすい)':'静粛航行')}else if(k==3)subTorp(s)}
+ else if(k==0)sonar();else if(k==1)heli();else if(k==2)fire(0);else if(k==3)fire(1);else if(k==4)p1();else if(k==5)cycForm()}
 function cmd(k){if(NET.on&&!NET.host){NET.conn&&NET.conn.send({c:k})}else runCmd(role,k)}
 [0,1,2,3].forEach(i=>$(['bs','bh','bt','bv'][i]).onclick=()=>cmd(i));
 function setRole(r){role=r;const sub=r=='sub',L=sub?['対艦ミサイル','デコイ展開','高速/静粛','']:['アクティブソナー','SH-60K 発艦','324mm 短魚雷','VLA 対潜ミサイル'],K=['Space','H','T','V'],S=sub?['6発・探知されやすい','4基','高速は探知リスク','']:['広域探信','最大6機','探知目標へ自動照準','遠距離投射'];
@@ -301,12 +301,12 @@ function update(){if(state!='playing'||paused)return;readKeys();if(NET.on&&!NET.
  if(NET.on){if(role=='surface'){joy=jin;joyU=rjoy}else{joyU=jin;joy=rjoy}}else joy=jin;
  extraSim();simUpdate();hud();focus();if(NET.on)hostPost()}
 // ---- network
-const FS=['x','y','a','v','hp','dead','sam','vla','tor'],FU=['x','y','a','v','hp','det','exp','miss','dec','human','boost'],FH=['x','y','a','dip'],F3=['x','y','a'],FT=['x','y','a','v','fly'],FD=['x','y','life'],FB=['x','y'];
+const FS=['x','y','a','v','hp','dead','sam','vla','tor'],FU=['x','y','a','v','hp','det','exp','miss','dec','human','boost','tp'],FH=['x','y','a','dip'],F3=['x','y','a'],FT=['x','y','a','v','fly','e'],FD=['x','y','life'],FB=['x','y'];
 const pk=(a,f)=>a.map(o=>f.map(k=>o[k])),up=(rows,f,mk)=>rows.map(r=>{const o=mk();f.forEach((k,i)=>o[k]=r[i]);return o});
 function hostPost(force){if(!NET.conn||(!force&&++NET.t%3))return;
- const m={sh:pk(ships,FS),su:pk(subs,FU),he:pk(helis,FH),f:pk(f35s,F3),mi:pk(missiles,F3),sa:pk(sams,F3),to:pk(torps,FT),de:pk(decoys,FD),bu:pk(buoys,FB),pg:pings.map(p=>[p.x,p.y,p.r,p.m,p.c]),l:Q.logs,s:Q.snd,fx:Q.fx,w:NET.w};
+ const m={sh:pk(ships,FS),su:pk(subs,FU),he:pk(helis,FH),f:pk(f35s,F3),mi:pk(missiles,F3),sa:pk(sams,F3),to:pk(torps.concat(etorps),FT),de:pk(decoys,FD),bu:pk(buoys,FB),pg:pings.map(p=>[p.x,p.y,p.r,p.m,p.c]),l:Q.logs,s:Q.snd,fx:Q.fx,w:NET.w,fi:formIdx};
  Q.logs=[];Q.snd=[];Q.fx=[];try{NET.conn.send({s:m})}catch(e){}}
-function applySnap(m){m.sh.forEach((r,i)=>FS.forEach((k,j)=>ships[i][k]=r[j]));
+function applySnap(m){if(m.fi!==undefined)formIdx=m.fi;m.sh.forEach((r,i)=>FS.forEach((k,j)=>ships[i][k]=r[j]));
  subs=up(m.su,FU,()=>Object.create(Sub.prototype));helis=up(m.he,FH,()=>Object.create(Heli.prototype));f35s=up(m.f,F3,()=>Object.create(F35.prototype));
  missiles=up(m.mi,F3,()=>({}));sams=up(m.sa,F3,()=>({}));torps=up(m.to,FT,()=>({}));decoys=up(m.de,FD,()=>({}));buoys=up(m.bu,FB,()=>({}));
  pings=m.pg.map(r=>({x:r[0],y:r[1],r:r[2],m:r[3],c:r[4]}));m.l.forEach(l=>_lg(l[0],l[1]));m.s.forEach(_sn);m.fx.forEach(f=>{boom(f[0],f[1],f[2],f[3]);if(f[3]>=1.2)shake=18});
@@ -320,8 +320,8 @@ function guestUpdate(){const mv=(o,s)=>{o.x+=Math.cos(o.a)*s;o.y+=Math.sin(o.a)*
 function startOnline(hr,mr){start();NET.on=true;NET.host=!mr;NET.t=0;NET.w=null;setRole(mr||hr);subs=[];
  if(!mr){const s=new Sub();Object.assign(s,{human:true,miss:6,dec:4,boost:false,cd:0,dc:0,v:1,hp:100});subs=[s];logm('PvP開始: 敵は人間プレイヤー',1)}
  $('ov').classList.add('h')}
-function onHost(m){if(m.j)rjoy={x:m.j[0],y:m.j[1]};if(m.c!=null)runCmd(role=='sub'?'surface':'sub',m.c)}
-function onGuest(m){if(m.hello)startOnline(null,m.hello);if(m.s&&NET.on)applySnap(m.s)}
+function onHost(m){if(m.sw){doSwap();return}if(m.j)rjoy={x:m.j[0],y:m.j[1]};if(m.c!=null)runCmd(role=='sub'?'surface':'sub',m.c)}
+function onGuest(m){if(m.role){setRole(m.role);logm('陣営交代: あなたは'+(m.role=='sub'?'潜水艦':'水上艦隊')+'側');return}if(m.hello)startOnline(null,m.hello);if(m.s&&NET.on)applySnap(m.s)}
 const lm=t=>$('ns2').textContent=t;
 $('mk').onclick=()=>{if(typeof Peer=='undefined')return lm('PeerJSを読み込めません(ネット接続を確認)');
  const code=Math.random().toString(36).slice(2,6).toUpperCase(),hr=$('rs').value;peer=new Peer('nvops-'+code);lm('部屋コード: '+code+'  ― 相手の参加待ち...');
@@ -436,6 +436,38 @@ function overlay(){if(state=='title')return;const T=Date.now()*.001;
  if(p1cd>=0&&$('bp'))$('bp').firstChild.textContent=p1cd>0?'P-1 再出撃まで '+Math.ceil(p1cd/60)+'s':'P-1 哨戒機';
 }
 const _dr=draw;draw=function(){_dr();overlay()};
+
+// ===== BLOCK v4: 陣営交代 / 潜水艦魚雷 / 難易度 / 陣形 =====
+let etorps=[],formIdx=0;
+const FORMS=[['単横陣',[0,-380],[0,380]],['単縦陣',[-380,0],[-760,0]],['輪形陣',[-120,-330],[220,330]],['密集陣',[-180,-180],[-180,180]]];
+function FORM(s){const f=FORMS[formIdx],o=s.t=='izumo'?f[1]:f[2],a=mogami.a,c=Math.cos(a),n=Math.sin(a);return [c*o[0]-n*o[1],n*o[0]+c*o[1]]}
+const diff=()=>{const v=+$('df').value;return v>=0&&v<=2?v:1};
+function cycForm(){formIdx=(formIdx+1)%FORMS.length;logm('陣形変更: '+FORMS[formIdx][0])}
+function subTorp(s){if(!(s.tp>0)||s.tcd>0){logm(s.tp>0?'魚雷 再装填中':'魚雷 弾切れ',1);return}
+ let b=null,ba=9;for(const t of ships){if(t.dead||D(t,s)>1500)continue;const d=Math.abs(nrm(Math.atan2(t.y-s.y,t.x-s.x)-s.a))+D(t,s)/6000;if(d<ba){ba=d;b=t}}
+ etorps.push({x:s.x,y:s.y,a:b?Math.atan2(b.y-s.y,b.x-s.x):s.a,v:4.6,fly:false,life:700,e:1,alive:true});s.tp--;s.tcd=240;s.det=Math.max(s.det,150);s.exp=Math.max(s.exp,150);
+ logm('警報: 敵潜水艦が魚雷を発射!'+(b?' 目標 '+b.n:''),1);snd('alarm')}
+function etSim(){subs.forEach(u=>{if(u.tcd>0)u.tcd--});
+ etorps=etorps.filter(q=>{if(--q.life<=0)return false;let b=null,bd=420;for(const s of ships)if(!s.dead&&D(s,q)<bd){bd=D(s,q);b=s}
+  if(b)q.a+=cl(nrm(Math.atan2(b.y-q.y,b.x-q.x)-q.a),-.04,.04);q.x+=Math.cos(q.a)*q.v;q.y+=Math.sin(q.a)*q.v;P(q.x,q.y,'rgba(255,120,120,.5)',rand(1,2),20);
+  for(const t of torps)if(!t.fly&&t.alive&&D(t,q)<24){t.alive=false;boom(q.x,q.y,10,.8);logm('味方魚雷が敵魚雷を迎撃!');return false}
+  if(b&&bd<40){b.hp-=40;shake=24;boom(q.x,q.y,20,1.5);vib(120);logm('被弾: '+b.n+' に魚雷命中!',1);if(b.hp<=0&&!b.dead){b.dead=true;b.hp=0;logm(b.n+' 大破・航行不能!',1)}return false}
+  return true})}
+function diffTick(){if(NET.on)return;const d=diff();subs.forEach(u=>{if(u.human)return;if(d==2)u.cd-=.5;else if(d==0)u.cd+=.3;
+ if(d>0){u.tc2=(u.tc2===undefined?500:u.tc2)-1;if(u.tc2<=0){let b=null;for(const s of ships)if(!s.dead&&D(s,u)<1100&&(!b||D(s,u)<D(b,u)))b=s;u.tc2=d==2?600:1000;
+  if(b){etorps.push({x:u.x,y:u.y,a:Math.atan2(b.y-u.y,b.x-u.x),v:4.4,fly:false,life:600,e:1,alive:true});u.det=Math.max(u.det,200);logm('警報: 敵潜が魚雷を発射!',1);snd('alarm')}}}})}
+const _ex=extraSim;extraSim=function(){_ex();etSim();diffTick()};
+const _sw2=spawnWave;spawnWave=function(){_sw2();if(!NET.on){const d=diff();subs.forEach(u=>{u.hp=Math.round(u.hp*[.5,1,1.5][d])})}};
+const _s4=start;start=function(){_s4();etorps=[];formIdx=0};
+const _so=startOnline;startOnline=function(a,b){_so(a,b);subs.forEach(s=>{if(s.human){s.tp=4;s.tcd=0;s.hp=[130,100,70][diff()]}})};
+function doSwap(){if(!NET.on||!NET.host||state!='playing')return;const prev=role;role=prev=='sub'?'surface':'sub';setRole(role);rjoy={x:0,y:0};try{NET.conn.send({role:prev})}catch(e){}logm('陣営交代: あなたは'+(role=='sub'?'潜水艦':'水上艦隊')+'側')}
+function swapReq(){if(!NET.on||state!='playing')return;if(NET.host)doSwap();else NET.conn&&NET.conn.send({sw:1})}
+const _sr2=setRole;setRole=function(r){_sr2(r);const sub=r=='sub';$('bp').style.display=$('bf').style.display=sub?'none':'';if(sub){$('bv').style.display='';$('bv').innerHTML='潜水艦魚雷<small>[V] 前方の艦を追尾</small>'}};
+const bf=document.createElement('button');bf.className='btn';bf.id='bf';bf.style.gridColumn='1/3';bf.innerHTML='陣形<small>[F] 切替</small>';$('btns').appendChild(bf);bf.onclick=()=>cmd(5);
+const bx=document.createElement('button');bx.className='btn';bx.id='bx';bx.style.cssText='position:absolute;top:calc(70px + env(safe-area-inset-top,0px));left:8px;padding:6px 10px;display:none;z-index:5';bx.textContent='陣営交代 [X]';document.body.appendChild(bx);bx.onclick=swapReq;
+addEventListener('keydown',e=>{if(e.code=='KeyF')cmd(5);else if(e.code=='KeyX')swapReq()});
+const _hd=hud;hud=function(){_hd();const sb=subs.find(u=>u.human);if(role=='sub'&&sb)$('ns').textContent=Math.round(Math.max(0,sb.hp))+' / 魚雷'+(sb.tp||0);$('bf').firstChild.textContent='陣形: '+FORMS[formIdx][0];$('bx').style.display=NET.on?'':'none'};
+const _ov=overlay;overlay=function(){_ov();if(state=='title')return;[...torps,...etorps].forEach(q=>{if(!q.e)return;const p=sp(q);ctx.strokeStyle='#ff4455';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,9*zoom,0,TAU);ctx.stroke()})};
 
 function loop(){update();draw();requestAnimationFrame(loop)}
 show('NAVAL OPS 現代艦隊対潜・対空演習',$('od').innerHTML,'作戦開始',start);requestAnimationFrame(loop);
