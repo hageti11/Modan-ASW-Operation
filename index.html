@@ -236,7 +236,7 @@ function minimap(){
  const sa=(Date.now()*.0025)%TAU;sc.strokeStyle='rgba(0,240,255,.55)';sc.beginPath();sc.moveTo(85,85);sc.lineTo(85+Math.cos(sa)*85,85+Math.sin(sa)*85);sc.stroke();
  const k=85/3400,dot=(o,c,r,clamp)=>{if(role=='sub'&&!o.human&&o.det===undefined&&Math.hypot(o.x-cam.x,o.y-cam.y)>2400)return;let dx=(o.x-cam.x)*k,dy=(o.y-cam.y)*k;const d=Math.hypot(dx,dy);if(d>82){if(!clamp)return;dx*=82/d;dy*=82/d}sc.fillStyle=c;sc.beginPath();sc.arc(85+dx,85+dy,r,0,TAU);sc.fill()};
  dot(mogami,'#00f0ff',3.5);dot(izumo,'#00aaff',3);dot(maya,'#00ffd0',3);helis.forEach(h=>dot(h,'#b8cbdc',1.5));f35s.forEach(f=>dot(f,'#fff',1.5));buoys.forEach(b=>dot(b,'#ffaa00',1.5));missiles.forEach(m=>dot(m,'#ff8800',2));
- subs.forEach(s=>{if(s.det>0||(s.human&&role=='sub'))dot(s,'#ff2244',4.5,true)});
+ subs.forEach(s=>{if(s.det>0||role=='sub')dot(s,'#ff2244',4.5,true)});
 }
 // ===== ONLINE / MODEL UPGRADE BLOCK =====
 const NET={on:false,host:false,conn:null,t:0,w:null},Q={logs:[],snd:[],fx:[]};let peer;
@@ -265,7 +265,7 @@ Ship.prototype.draw=function(){if(fog(this))return;const t=this.t,s=SHAPE[t],c=C
  ctx.save();ctx.scale(.8,.92);ctx.fillStyle='rgba(255,255,255,.07)';this.path(s);ctx.fill();ctx.restore();
  if(!d)DET[t]();ctx.restore()};
 const hull=()=>{ctx.beginPath();ctx.moveTo(0,-56);ctx.bezierCurveTo(17,-38,15,30,5,56);ctx.lineTo(-5,56);ctx.bezierCurveTo(-15,30,-17,-38,0,-56);ctx.closePath()};
-Sub.prototype.draw=function(){const own=role=='sub'&&this.human;if(!(this.det>0||own||D(this,mogami)<220))return;
+Sub.prototype.draw=function(){const own=role=='sub';if(!(this.det>0||own||D(this,mogami)<220))return;
  ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.a+Math.PI/2);
  ctx.save();ctx.translate(6,8);ctx.globalAlpha=.25;ctx.fillStyle='#000';hull();ctx.fill();ctx.restore();
  const g=ctx.createLinearGradient(-15,0,15,0);g.addColorStop(0,'#08140f');g.addColorStop(.5,'#22423a');g.addColorStop(1,'#08140f');ctx.fillStyle=g;hull();ctx.fill();ctx.strokeStyle='#00f0aa';ctx.lineWidth=own?2:1.5;ctx.stroke();
@@ -735,7 +735,7 @@ function slbm(u){const al=ships.filter(s=>!s.dead);if(!al.length||u.sl<=0)return
  for(let i=0;i<n;i++){const s=al[Math.floor(Math.random()*al.length)],T=900+i*45;blm.push({lx:u.x,ly:u.y,tx:s.x+Math.cos(s.a)*s.v*T*.6,ty:s.y+Math.sin(s.a)*s.v*T*.6,t:0,T,alive:true,tr:0})}
  u.bl=220;u.det=Math.max(u.det,300);u.exp=300;P(u.x,u.y,'#fff',22,60,0,-1);logm('警報: 弾道ミサイル(SLBM)'+n+'発 発射! 着弾まで約15秒 — 着弾圏から離脱 / まやがSM-3で迎撃',1);snd('alarm')}
 const _ex13=extraSim;extraSim=function(){
- subs.forEach(u=>{if(u.alive&&u.boss&&u.sl>0&&!NET.on){u.bcd-=[.7,1,1.3][diff()];if(u.bcd<=0){u.bcd=rand(1200,1700);slbm(u)}}});
+ subs.forEach(u=>{if(u.alive&&u.boss&&u.sl>0){u.bcd-=[.7,1,1.3][diff()];if(u.bcd<=0){u.bcd=rand(1200,1700);slbm(u)}}});
  blm=blm.filter(m=>{m.t++;const f=m.t/m.T,gx=m.lx+(m.tx-m.lx)*f,gy=m.ly+(m.ty-m.ly)*f;if(f>.78&&Math.random()<.5)P(gx,gy,'#ff7040',rand(2,4),18,0,0);
   if(!maya.dead&&f>.35&&f<.95&&maya.sam>=2&&!(maya.bd>0)&&D({x:gx,y:gy},maya)<4200&&(m.tr||0)<2){maya.sam-=2;maya.bd=100;m.tr=(m.tr||0)+1;const ok=Math.random()<[.8,.7,.55][diff()];
    for(let i=1;i<7;i++)P(maya.x+(gx-maya.x)*i/7,maya.y+(gy-maya.y)*i/7,'#9fe8ff',2,10,0,0);
@@ -755,6 +755,24 @@ const _dw13=draw;draw=function(){_dw13();
   ctx.fillStyle='#ff8080';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('弾道ミサイル着弾 '+Math.max(0,Math.ceil((m.T-m.t)/60))+'s',tp.x,tp.y-r-6);
   const gp=sp({x:m.lx+(m.tx-m.lx)*f,y:m.ly+(m.ty-m.ly)*f});ctx.fillStyle=f>.78?'#ff6a40':'#ffffff';ctx.beginPath();ctx.arc(gp.x,gp.y,(f>.78?5:2.5)*zoom,0,TAU);ctx.fill();ctx.restore()});
  if(++nt12%10==0&&state!='title'){const b=subs.find(u=>u.boss);nxb.style.display=b?'':'none';if(b)nxb.innerHTML='オハイオ級: SLBM残 '+b.sl+'/24 ・ HP '+Math.max(0,Math.round(b.hp))+'<br>まやのSM-3(SAM残'+maya.sam+')が弾道ミサイルを迎撃'}};
+
+// ===== BLOCK v13: 潜水艦プレイ時の友軍AI潜水艦(バージニア級×1 + オハイオ級×1) =====
+function addBots13(){const h=subs.find(u=>u.human);if(!h)return;const c=Math.cos(h.a),s=Math.sin(h.a);
+ const mk=(dx,dy,hp)=>{const u=new Sub();u.x=h.x+c*dx-s*dy;u.y=h.y+s*dx+c*dy;u.a=h.a;u.hp=hp;u.d=2;u.o2=100;u.dm=0;u.cd=rand(260,480);return u};
+ const v=mk(-350,600,150),o=mk(-900,-700,420);Object.assign(o,{boss:1,sl:24,bcd:900});subs.push(v,o);ST.sl=subs.length;
+ logm('友軍AI潜水艦が合流: バージニア級×1(AI)・オハイオ級×1(AI/弾道ミサイル搭載)。全潜水艦が撃沈されると敗北')}
+const _s14=start;start=function(){_s14.apply(this,arguments);if(SM&&!NET.on)addBots13()};
+const _so14=startOnline;startOnline=function(h,m){_so14(h,m);if(!m)addBots13()};
+// 艦隊AI: プレイヤーが倒れても友軍AIの潜水艦を追跡 / 観戦カメラ
+aiFleet=function(){if(mogami.dead||!AIF)return;const A=AIF,R=[.7,1,1.5][diff()],t0=subs.filter(u=>u.alive&&u.det>0).sort((a,b)=>D(a,mogami)-D(b,mogami))[0];
+ if(t0)A.lk={x:t0.x,y:t0.y};A.pt+=.004;const rr=900+600*Math.sin(A.pt*.3),tg=A.lk||{x:Math.cos(A.pt)*rr,y:Math.sin(A.pt)*rr},dx=tg.x-mogami.x,dy=tg.y-mogami.y,d=Math.hypot(dx,dy)||1,k=d<250?0:(t0?1:.6);joy={x:dx/d*k,y:dy/d*k};
+ if(--A.sc<=0){A.sc=Math.round(700/R);sonar();logm('敵艦隊: アクティブソナー照射(探信音を探知)',1)}
+ if(A.fc>0)A.fc--;if(t0&&A.fc<=0){const r=D(t0,mogami);if(r<800){fire(0);A.fc=Math.round(200/R)}else if(r<2300){fire(1);A.fc=Math.round(300/R)}}
+ if(!t0&&p1cd<=0&&Math.random()<.002)p1()};
+const _fc14=focus;focus=function(){if(role=='sub'&&!subs.find(u=>u.human)&&subs[0]){cam.x=subs[0].x;cam.y=subs[0].y}else _fc14()};
+// 友軍ラベル
+const _dw14=draw;draw=function(){_dw14();if(role!='sub'||state=='title')return;ctx.save();ctx.textAlign='center';ctx.font='bold 10px sans-serif';
+ subs.forEach(u=>{if(u.human)return;const p=sp(u);if(p.x<-60||p.x>W+60||p.y<-60||p.y>H+60)return;ctx.fillStyle='#7fffd4';ctx.fillText('友軍 '+(u.boss?'オハイオ級(AI)':'バージニア級(AI)'),p.x,p.y-(u.boss?70:42)*zoom)});ctx.restore()};
 
 function loop(){update();draw();requestAnimationFrame(loop)}
 show('NAVAL OPS 現代艦隊対潜・対空演習',$('od').innerHTML,'作戦開始',start);requestAnimationFrame(loop);
