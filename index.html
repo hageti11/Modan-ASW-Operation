@@ -44,12 +44,12 @@ b.v{color:#fff;font-size:14px}
 <div id="joy"><div id="knob"></div></div>
 <div id="btns">
  <button class="btn" id="bs">アクティブソナー<small>[Space] 広域探信</small></button>
- <button class="btn" id="bh">SH-60K 発艦<small>[H] 最大6機</small></button>
+ <button class="btn" id="bh">SH-60K 発艦<small>[H] 最大9機</small></button>
  <button class="btn" id="bt">324mm 短魚雷<small>[T] 探知目標へ自動照準</small></button>
  <button class="btn" id="bv">VLA 対潜ミサイル<small>[V] 遠距離投射</small></button>
 </div>
 <div id="ov"><div id="ot">NAVAL OPS 現代艦隊対潜・対空演習</div>
-<div id="od">【編成】<b>もがみ型(旗艦・操艦)</b> / <b>いずも型</b>(F-35B CAP・SH-60K) / <b>まや型</b>(イージス)<br>
+<div id="od">【編成】<b>もがみ型(旗艦・操艦)</b> / <b>いずも型</b>(F-35B CAP・SH-60K) / <b>まや型</b>(イージス) / <b>あきづき型×2</b>(汎用護衛艦・DD-115/116)<br>
 操作: 左スティック or WASD・矢印で操艦 / P で一時停止<br>
 攻撃原潜は静かに接近し、対艦ミサイルとデコイで反撃します。ソナー・ヘリ・ソノブイで捕捉し、魚雷で撃沈せよ。<br>ウェーブが進むほど敵潜は増えます。</div>
 <div style="margin-bottom:10px;color:#c0dce8;font-size:13px">難易度 <select id="df" style="font-size:14px;padding:6px 10px;border-radius:8px;border:1px solid #00d2ff;background:#0c263e;color:#fff"><option value="0">易しい</option><option value="1" selected>普通</option><option value="2">難しい</option></select> 役割 <select id="or" style="font-size:14px;padding:6px 10px;border-radius:8px;border:1px solid #00d2ff;background:#0c263e;color:#fff"><option value="surface">水上艦隊</option><option value="sub">潜水艦</option></select><br><small>オンラインでは潜水艦のHP補正(130/100/70)になります</small></div><button id="ob">作戦開始</button>
@@ -88,7 +88,7 @@ class Ship{constructor(x,y,n,t){this.x=x;this.y=y;this.n=n;this.t=t;this.a=0;thi
    else this.v=Math.max(0,this.v-.016)
   }else{
    const fo=FORM(this),dx=mogami.x+fo[0]-this.x,dy=mogami.y+fo[1]-this.y,d=Math.hypot(dx,dy);
-   if(d>70){const df=nrm(Math.atan2(dy,dx)-this.a);this.a+=cl(df,-this.turn,this.turn);this.v=Math.min(this.max,d*.015)}else this.v*=.94
+   if(d>90){const df=nrm(Math.atan2(dy,dx)-this.a);this.a+=cl(df,-this.turn,this.turn);this.v=Math.min(this.max,Math.max(mogami.v*.9,0)+d*.02)}else{this.a+=cl(nrm(mogami.a-this.a),-this.turn*.6,this.turn*.6);this.v+=(mogami.v-this.v)*.1}
   }
   this.x+=Math.cos(this.a)*this.v;this.y+=Math.sin(this.a)*this.v;
   if(this.v>.5)for(let i=0;i<2;i++)P(this.x-Math.cos(this.a)*35+rand(-8,8),this.y-Math.sin(this.a)*35+rand(-8,8),'rgba(220,245,255,.4)',rand(2,5),110);
@@ -148,15 +148,15 @@ class Heli{constructor(s){this.s=s;this.x=s.x;this.y=s.y;this.a=0;this.pa=rand(0
    for(const s of subs)if(D(s,this)<650){s.det=300;logm('SH-60K: 敵潜の反射音を探知!',1);snd('ping')}}}
  draw(){ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.a+Math.PI/2);ctx.fillStyle='#b8cbdc';ctx.beginPath();ctx.ellipse(0,0,5,16,0,0,TAU);ctx.fill();const r=Date.now()*.06;ctx.strokeStyle='rgba(210,240,255,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-25*Math.cos(r),-25*Math.sin(r));ctx.lineTo(25*Math.cos(r),25*Math.sin(r));ctx.stroke();
   if(this.dip>0){ctx.strokeStyle='rgba(0,240,255,.7)';ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(0,0,60+Math.sin(Date.now()*.01)*8,0,TAU);ctx.stroke()}ctx.restore()}}
-class Sub{constructor(){const a=rand(0,TAU),d=rand(2200,3000);this.x=mogami.x+Math.cos(a)*d;this.y=mogami.y+Math.sin(a)*d;this.a=a+Math.PI;this.hp=100;this.det=0;this.exp=0;this.cd=rand(220,420);this.dc=0;this.ph=rand(0,TAU);this.alive=true}
+class Sub{constructor(){const a=rand(0,TAU),d=rand(3800,5000);this.x=mogami.x+Math.cos(a)*d;this.y=mogami.y+Math.sin(a)*d;this.a=a+Math.PI;this.hp=100;this.det=0;this.exp=0;this.cd=rand(220,420);this.dc=0;this.ph=rand(0,TAU);this.alive=true}
  update(){
   const al=ships.filter(s=>!s.dead);if(!al.length)return;let tg=al[0];for(const s of al)if(D(s,this)<D(tg,this))tg=s;
   const thr=torps.find(t=>t.alive&&!t.fly&&D(t,this)<260);let des,v=1.3;const d=D(tg,this);
   if(thr){des=Math.atan2(this.y-thr.y,this.x-thr.x);v=2.3;if(this.dc<=0){this.dc=260;decoys.push({x:this.x,y:this.y,life:520});logm('敵潜: 音響デコイ展開!')}}
-  else{des=Math.atan2(tg.y-this.y,tg.x-this.x)+Math.sin(Date.now()/2500+this.ph)*.7;if(d<900)des+=Math.PI/2}
+  else{des=Math.atan2(tg.y-this.y,tg.x-this.x)+Math.sin(Date.now()/2500+this.ph)*.7;if(d<2400)des+=Math.PI/2+(1-d/2400)*Math.PI/2}
   this.a+=cl(nrm(des-this.a),-.025,.025);this.x+=Math.cos(this.a)*v;this.y+=Math.sin(this.a)*v;
   if(this.dc>0)this.dc--;if(this.det>0)this.det--;if(this.exp>0)this.exp--;
-  if(--this.cd<=0){this.cd=rand(380,600)/(1+wave*.06);if(d<3300){const t=al[Math.floor(Math.random()*al.length)];missiles.push({x:this.x,y:this.y,t,a:0,alive:true,tg:0});this.det=Math.max(this.det,220);this.exp=220;P(this.x,this.y,'#fff',14,40,0,-1);logm('警報: 水中発射の対艦ミサイル接近!',1);snd('launch')}}}
+  if(--this.cd<=0){this.cd=rand(380,600)/(1+wave*.06);if(d<5200){const t=al[Math.floor(Math.random()*al.length)];missiles.push({x:this.x,y:this.y,t,a:0,alive:true,tg:0});this.det=Math.max(this.det,220);this.exp=220;P(this.x,this.y,'#fff',14,40,0,-1);logm('警報: 水中発射の対艦ミサイル接近!',1);snd('launch')}}}
  draw(){if(!(this.det>0||D(this,mogami)<220))return;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.a+Math.PI/2);ctx.fillStyle='rgba(12,35,25,.9)';ctx.beginPath();ctx.ellipse(0,0,11,50,0,0,TAU);ctx.fill();ctx.strokeStyle='#00f0aa';ctx.lineWidth=1.8;ctx.stroke();ctx.fillStyle='#06140d';ctx.fillRect(-5,-12,10,20);ctx.restore()}}
 // ---- projectiles
 function stepMissiles(){
@@ -175,7 +175,7 @@ function stepMissiles(){
 // ---- control
 function fire(vla){const s=mogami;if(state!='playing'||paused||s.dead)return;if(vla?s.vla<=0:s.tor<=0){logm(vla?'警報: VLA 弾切れ':'警報: 短魚雷 弾切れ',1);return}
  let a=s.a,dist=900,tg=null;for(const u of subs)if(u.alive&&u.det>0&&(!tg||D(u,s)<D(tg,s)))tg=u;
- if(tg){a=Math.atan2(tg.y-s.y,tg.x-s.x);dist=cl(D(tg,s)-130,150,1500)}
+ if(tg){a=Math.atan2(tg.y-s.y,tg.x-s.x);dist=cl(D(tg,s)-130,150,3000)}
  vla?s.vla--:s.tor--;torps.push({x:s.x,y:s.y,a,v:vla?8.5:4.8,fly:vla,fd:dist,life:vla?900:650,alive:true});logm((vla?'VLA 対潜ミサイル':'324mm 短魚雷')+(tg?' 発射(目標指向)':' 発射(正面)'));snd('launch')}
 function sonar(){if(state!='playing'||paused||sonarCd>0)return;sonarCd=240;snd('ping');pings.push({x:mogami.x,y:mogami.y,r:0,m:1600,c:'0,240,255'});logm('アクティブソナー 強振照射!');
  for(const s of subs)if(D(s,mogami)<1600){s.det=320;logm('ソナー: 敵潜エコー捕捉!',1)}}
@@ -287,7 +287,7 @@ function runCmd(side,k){if(state!='playing')return;if(side=='sub'){const s=subs.
  else if(k==0)sonar();else if(k==1)heli();else if(k==2)fire(0);else if(k==3)fire(1);else if(k==4)p1();else if(k==5)cycForm()}
 function cmd(k){if(NET.on&&!NET.host){NET.conn&&NET.conn.send({c:k})}else runCmd(role,k)}
 [0,1,2,3].forEach(i=>$(['bs','bh','bt','bv'][i]).onclick=()=>cmd(i));
-function setRole(r){role=r;const sub=r=='sub',L=sub?['対艦ミサイル','デコイ展開','高速/静粛','']:['アクティブソナー','SH-60K 発艦','324mm 短魚雷','VLA 対潜ミサイル'],K=['Space','H','T','V'],S=sub?['6発・探知されやすい','4基','高速は探知リスク','']:['広域探信','最大6機','探知目標へ自動照準','遠距離投射'];
+function setRole(r){role=r;const sub=r=='sub',L=sub?['対艦ミサイル','デコイ展開','高速/静粛','']:['アクティブソナー','SH-60K 発艦','324mm 短魚雷','VLA 対潜ミサイル'],K=['Space','H','T','V'],S=sub?['6発・探知されやすい','4基','高速は探知リスク','']:['広域探信','最大9機','探知目標へ自動照準','遠距離投射'];
  ['bs','bh','bt','bv'].forEach((id,i)=>$(id).innerHTML=L[i]+'<small>['+K[i]+'] '+S[i]+'</small>');$('bv').style.display=sub?'none':'';
  const T=sub?['ミサイル','デコイ','HP']:['VLA','短魚雷','SAM'];['nv','nt','ns'].forEach((id,i)=>$(id).parentNode.firstChild.textContent=T[i]+' ')}
 function hud(){const sb=subs.find(u=>u.human);ships.forEach((s,i)=>{const e=$('h'+i),h=s.hp;e.style.width=h+'%';e.style.background=h>60?'#00e0a0':h>30?'#ffb020':'#ff3344'});
@@ -405,12 +405,12 @@ const b5=document.createElement('button');b5.className='btn';b5.id='bp';b5.style
 addEventListener('keydown',e=>{if(e.code=='KeyB')cmd(4)});
 function p1(){if(state!='playing'||mogami.dead)return;if(p1cd>0){logm('P-1 再出撃準備中',1);return}p1cd=1800;
  for(let i=1;i<=5;i++)buoys.push({x:mogami.x+Math.cos(mogami.a)*(400+i*380)+rand(-120,120),y:mogami.y+Math.sin(mogami.a)*(400+i*380)+rand(-120,120),life:1800,t:0});logm('P-1哨戒機: 前方にソノブイ5基散布');snd('launch')}
-function asroc(s,tg){torps.push({x:s.x,y:s.y,a:Math.atan2(tg.y-s.y,tg.x-s.x),v:8.5,fly:true,fd:cl(D(tg,s)-130,150,1500),life:900,alive:true});s.asr--;s.ac=420;ST.fired++;logm(s.n+': アスロック発射!');snd('launch')}
+function asroc(s,tg){torps.push({x:s.x,y:s.y,a:Math.atan2(tg.y-s.y,tg.x-s.x),v:8.5,fly:true,fd:cl(D(tg,s)-130,150,3000),life:900,alive:true});s.asr--;s.ac=420;ST.fired++;logm(s.n+': アスロック発射!');snd('launch')}
 function extraSim(){
  if(p1cd>0)p1cd--;const tgs=subs.filter(u=>u.alive&&u.det>0);
  ships.forEach(s=>{if(s.dead)return;if(s.asr===undefined){s.asr=s.t=='maya'?8:0;s.ac=0;s.gc=0;s.rc=0}
   if(s.ac>0)s.ac--;
-  if(s.t!='mogami'&&s.asr>0&&s.ac<=0){let b=null;for(const u of tgs)if(D(u,s)<3000&&(!b||D(u,s)<D(b,s)))b=u;if(b)asroc(s,b)}
+  if(s.t!='mogami'&&s.asr>0&&s.ac<=0){let b=null;for(const u of tgs)if(D(u,s)<4500&&(!b||D(u,s)<D(b,s)))b=u;if(b)asroc(s,b)}
   if(++s.rc>300){s.rc=0;if(s.hp<100)s.hp=Math.min(100,s.hp+1)}
   if(s.t!='izumo'&&s.gc<=0){for(const m of missiles){if(m.alive&&D(m,s)<650&&Math.random()<.5){s.gc=40;const a=Math.atan2(m.y-s.y,m.x-s.x);for(let i=1;i<6;i++)P(s.x+Math.cos(a)*(40+i*30),s.y+Math.sin(a)*(40+i*30),'#ffe9a0',2,8,0,0);if(Math.random()<.18){m.alive=false;boom(m.x,m.y,8,.7);logm(s.n+': 127mm砲で迎撃')}break}}}else s.gc--});
  helis.forEach(h=>{h.tc=(h.tc||300)-1;if(h.dip>0||h.tc>0)return;for(const u of tgs)if(D(u,h)<520){torps.push({x:h.x,y:h.y,a:Math.atan2(u.y-h.y,u.x-h.x),v:3.8,fly:false,fd:0,life:500,alive:true});h.tc=1500;ST.fired++;logm('SH-60K: 短魚雷を投下!');snd('splash');break}});
@@ -444,7 +444,7 @@ function FORM(s){const f=FORMS[formIdx],o=s.t=='izumo'?f[1]:f[2],a=mogami.a,c=Ma
 const diff=()=>{const v=+$('df').value;return v>=0&&v<=2?v:1};
 function cycForm(){formIdx=(formIdx+1)%FORMS.length;logm('陣形変更: '+FORMS[formIdx][0])}
 function subTorp(s){if(!(s.tp>0)||s.tcd>0){logm(s.tp>0?'魚雷 再装填中':'魚雷 弾切れ',1);return}
- let b=null,ba=9;for(const t of ships){if(t.dead||D(t,s)>1500)continue;const d=Math.abs(nrm(Math.atan2(t.y-s.y,t.x-s.x)-s.a))+D(t,s)/6000;if(d<ba){ba=d;b=t}}
+ let b=null,ba=9;for(const t of ships){if(t.dead||D(t,s)>3000)continue;const d=Math.abs(nrm(Math.atan2(t.y-s.y,t.x-s.x)-s.a))+D(t,s)/6000;if(d<ba){ba=d;b=t}}
  etorps.push({x:s.x,y:s.y,a:b?Math.atan2(b.y-s.y,b.x-s.x):s.a,v:4.6,fly:false,life:700,e:1,alive:true});s.tp--;s.tcd=240;s.det=Math.max(s.det,150);s.exp=Math.max(s.exp,150);
  logm('警報: 敵潜水艦が魚雷を発射!'+(b?' 目標 '+b.n:''),1);snd('alarm')}
 function etSim(){subs.forEach(u=>{if(u.tcd>0)u.tcd--});
@@ -454,7 +454,7 @@ function etSim(){subs.forEach(u=>{if(u.tcd>0)u.tcd--});
   if(b&&bd<40){b.hp-=(q.hv?85:62);shake=24;boom(q.x,q.y,20,1.5);vib(120);logm('被弾: '+b.n+' に魚雷命中!',1);if(b.hp<=0&&!b.dead){b.dead=true;b.hp=0;logm(b.n+' 大破・航行不能!',1)}return false}
   return true})}
 function diffTick(){if(NET.on)return;const d=diff();subs.forEach(u=>{if(u.human)return;if(d==2)u.cd-=.5;else if(d==0)u.cd+=.3;
- if(d>0){u.tc2=(u.tc2===undefined?500:u.tc2)-1;if(u.tc2<=0){let b=null;for(const s of ships)if(!s.dead&&D(s,u)<1100&&(!b||D(s,u)<D(b,u)))b=s;u.tc2=d==2?600:1000;
+ if(d>0){u.tc2=(u.tc2===undefined?500:u.tc2)-1;if(u.tc2<=0){let b=null;for(const s of ships)if(!s.dead&&D(s,u)<2200&&(!b||D(s,u)<D(b,u)))b=s;u.tc2=d==2?600:1000;
   if(b){etorps.push({x:u.x,y:u.y,a:Math.atan2(b.y-u.y,b.x-u.x),v:4.4,fly:false,life:600,e:1,alive:true});u.det=Math.max(u.det,200);logm('警報: 敵潜が魚雷を発射!',1);snd('alarm')}}}})}
 const _ex=extraSim;extraSim=function(){_ex();etSim();diffTick()};
 const _sw2=spawnWave;spawnWave=function(){_sw2();if(!NET.on){const d=diff();subs.forEach(u=>{u.hp=Math.round(u.hp*[.5,1,1.5][d])})}};
@@ -480,7 +480,7 @@ function specHTML2(){const sb=subs.find(u=>u.human);
 <b>もがみ</b> 全長130m/基準3,900t/30kt超 — 5インチ砲, Mk41 VLS 16セル, 12式SSM×8, SeaRAM, 324mm魚雷管×6<br>　残弾: VLA ${mogami.vla} / 短魚雷 ${mogami.tor} / SAM ${mogami.sam} / 曳航デコイ ${mogami.nx}/3<br>
 <b>いずも</b> 全長248m/基準19,500t/30kt — SeaRAM×2, ファランクス×2, 搭載機14機(F-35B運用改修)<br>　残弾: SAM ${izumo.sam} / 曳航デコイ ${izumo.nx}/3<br>
 <b>まや</b> 全長170m/基準8,200t/30kt — 5インチ砲, Mk41 VLS 96セル(本ゲームの配分: 艦対空80/アスロック16), ファランクス×2, SPY-1D(V), 324mm魚雷管×6<br>　残弾: SAM ${maya.sam}/80 / アスロック ${maya.asr}/16 / 短魚雷 ${maya.tor}/12 / 曳航デコイ ${maya.nx}/3<br>
-<b>はやぶさ型ミサイル艇</b> 全長約50m/基準約200t/44kt級 — 62口径76mm砲, 90式SSM×4<br>　残弾: SSM ${ships[3]?ships[3].ssm:'-'} / ${ships[4]?ships[4].ssm:'-'}<br><b>F-35B</b> 4機 — 精密誘導爆弾(浮上・潜望鏡深度の潜水艦を攻撃)/AAMでミサイル迎撃　兵装 ${f35s.map(f=>f.bm??2).join('/')}<br><b>P-1哨戒機</b> 全長約38m/最大約500kt級・ターボファン4発 — HPS-137レーダー・MAD・ESM・IR/EO・ソノブイ・短魚雷・空対艦ミサイル　${p1l[0]?'搭載: 魚雷'+p1l[0].tp+'/ASM'+p1l[0].am+'/ソノブイ'+p1l[0].sb:'待機中'}<br><b>大型原潜(オハイオ級ベース・4ウェーブごと)</b> 水中約18,750t/全長約170m/25kt級 — トライデントII D5 弾道ミサイル24発(ゲームでは1回2〜4発)・まやがSM-3で迎撃可能<br><b>攻撃原潜(バージニア級ベース)</b> 水中約7,900t/全長約115m/25kt超 — 533mm魚雷発射管×4, VLS 12セル(VPM搭載型は+28)・浮上/潜望鏡/深深度を使い分け<br>${sb?' 魚雷 '+(sb.tp??'-')+' / ミサイル '+sb.miss+' / デコイ '+sb.dec:' 魚雷・ミサイル・デコイを搭載'}<br>
+<b>あきづき型護衛艦(DD-115)</b> 基準約5,000t/全長約150m/30kt — 62口径5インチ砲×1, 20mm CIWS×2, Mk41 VLS 32セル(ESSM/アスロック), 90式SSM 4連装×2, 324mm3連装魚雷発射管×2, SH-60K×1, 曳航デコイ, FCS-3A<br>　残弾: SAM ${ships[3]?ships[3].sam:'-'}/24 / アスロック ${ships[3]?ships[3].asr:'-'}/8 / SSM ${ships[3]?ships[3].ssm:'-'}/8 / 短魚雷 ${ships[3]?ships[3].tor:'-'}/12 / デコイ ${ships[3]?ships[3].nx:'-'}/3<br><b>F-35B</b> 4機 — 精密誘導爆弾(浮上・潜望鏡深度の潜水艦を攻撃)/AAMでミサイル迎撃　兵装 ${f35s.map(f=>f.bm??2).join('/')}<br><b>P-1哨戒機</b> 全長約38m/最大約500kt級・ターボファン4発 — HPS-137レーダー・MAD・ESM・IR/EO・ソノブイ・短魚雷・空対艦ミサイル　${p1l[0]?'搭載: 魚雷'+p1l[0].tp+'/ASM'+p1l[0].am+'/ソノブイ'+p1l[0].sb:'待機中'}<br><b>大型原潜(オハイオ級ベース・4ウェーブごと)</b> 水中約18,750t/全長約170m/25kt級 — トライデントII D5 弾道ミサイル24発(ゲームでは1回2〜4発)・まやがSM-3で迎撃可能<br><b>攻撃原潜(バージニア級ベース)</b> 水中約7,900t/全長約115m/25kt超 — 533mm魚雷発射管×4, VLS 12セル(VPM搭載型は+28)・浮上/潜望鏡/深深度を使い分け<br>${sb?' 魚雷 '+(sb.tp??'-')+' / ミサイル '+sb.miss+' / デコイ '+sb.dec:' 魚雷・ミサイル・デコイを搭載'}<br>
 <span style="color:#8edeff">速度・射程はゲーム用に縮尺調整しています</span>`}
 const _ov5=overlay;overlay=function(){_ov5();if(state!='title'&&specPanel.style.display!='none')specPanel.innerHTML=specHTML2()};
 
@@ -559,7 +559,7 @@ const _ex8b=extraSim;extraSim=function(){
  missiles.forEach(m=>{if(!m.sv){m.sv=1;const d=NET.on?1:diff();salvo(m,(d==0?1:2)+(Math.random()<(d==2?.6:.4)?1:0))}});
  const tgs=subs.filter(u=>u.alive&&u.det>0).sort((a,b)=>D(a,maya)-D(b,maya));
  if(!maya.dead&&tgs.length){const tg=tgs[0],d=D(tg,maya);
-  if(d<3000&&maya.asr>0&&!(maya.ac>0)){asroc(maya,tg);if(maya.asr>0){asroc(maya,tg);torps[torps.length-1].a+=.07}maya.ac=420}
+  if(d<4500&&maya.asr>0&&!(maya.ac>0)){asroc(maya,tg);if(maya.asr>0){asroc(maya,tg);torps[torps.length-1].a+=.07}maya.ac=420}
   if(d<900&&maya.tor>0&&!(maya.tc3>0)){torps.push({x:maya.x,y:maya.y,a:Math.atan2(tg.y-maya.y,tg.x-maya.x),v:4.8,fly:false,fd:0,life:650,alive:true});maya.tor--;maya.tc3=300;ST.fired++;logm('まや: 324mm短魚雷 発射!');snd('launch')}}
  if(maya.tc3>0)maya.tc3--;
  if(tgs.length&&!izumo.dead&&helis.filter(h=>h.s==izumo).length<3&&--aiH8b<=0){aiH8b=240;heli()}
@@ -610,8 +610,8 @@ const _F9=FORM;FORM=function(s){if(s.t!='haya')return _F9(s);const tg=subs.find(
 // ---- 毎フレーム処理
 const _ex9=extraSim;extraSim=function(){
  subs.forEach(u=>{if(!u.alive)return;if(u.d===undefined){u.d=2;u.o2=100}if(u.dm>0)u.dm--;
-  if(u.human){const dr=[-.15,-.07,.011][u.d]*(u.boost&&u.d==2?1.8:1);u.o2=cl((u.o2??100)-dr,0,100);if(u.o2<=0&&!u.lock){u.lock=1;u.d=0;logm('酸素欠乏! 緊急浮上',1)}if(u.lock&&u.o2>=40)u.lock=0}
-  else u.d=u.cd<90?1:2;
+  if(u.human){const dr=[-.15,.015,.022][u.d]*(u.boost&&u.d==2?2.2:1);u.o2=cl((u.o2??100)-dr,0,100);if(u.o2<=0&&!u.lock){u.lock=1;u.d=0;logm('酸素欠乏! 緊急浮上',1)}if(u.lock&&u.o2>=40)u.lock=0}
+  else u.d=u.sf?0:(u.cd<90?1:2);
   const near=ships.some(s=>!s.dead&&D(s,u)<4500);
   if(u.d==0&&near)u.det=Math.max(u.det,45);
   if(u.d==1&&([...ships,...helis,...f35s].some(o=>D(o,u)<450)||(near&&Math.random()<.004)))u.det=Math.max(u.det,80);
@@ -628,7 +628,7 @@ const _ex9=extraSim;extraSim=function(){
 function resup9(){if(!mogami||!maya)return;mogami.vla=8;mogami.tor=6;mogami.sam=11;mogami.ssm=8;izumo.sam=22;maya.sam=80;maya.asr=16;maya.tor=12;maya.ssm=8;
  ships.forEach(s=>{s.nx=s.t=='haya'?2:3;if(s.t=='haya')s.ssm=4});f35s.forEach(f=>f.bm=2);if(wave>1)logm('補給完了: 全艦の弾薬・デコイ・F-35B兵装を補充')}
 const _sw9=spawnWave;spawnWave=function(){_sw9();resup9()};
-const _s9=start;start=function(){_s9.apply(this,arguments);fssm9=[];mogami.ssm=8;maya.ssm=8;mkBoats9();f35s.forEach(f=>f.bm=2);subs.forEach(u=>{u.d=2;u.o2=100;u.lock=0;u.dm=0});logm('はやぶさ型ミサイル艇2隻が合流(約44kt・SSM各4)')};
+const _s9=start;start=function(){_s9.apply(this,arguments);fssm9=[];mogami.ssm=8;maya.ssm=8;mkBoats9();f35s.forEach(f=>f.bm=2);subs.forEach(u=>{u.d=2;u.o2=100;u.lock=0;u.dm=0});logm('艦隊編成: もがみ・いずも・まや・あきづき型2隻(あきづき・てるづき)の5隻で出撃')};
 // ---- 描画・HUD
 const _sb9=Sub.prototype.draw;Sub.prototype.draw=function(){ctx.save();ctx.globalAlpha*=this.d==2?.55:1;_sb9.call(this);ctx.restore();
  if(state=='playing'&&!paused&&(this.det>0||(role=='sub'&&this.human))){if(this.d==0)P(this.x-Math.cos(this.a)*45,this.y-Math.sin(this.a)*45,'rgba(255,255,255,.55)',rand(3,5),30);else if(this.d==1)P(this.x+Math.cos(this.a)*5,this.y+Math.sin(this.a)*5,'rgba(255,255,255,.7)',2,18,0,0)}};
@@ -637,8 +637,8 @@ const _dw9=draw;draw=function(){_dw9();
  if(state=='title'||++nt9%6)return;const u=subs.find(q=>q.human);
  if(role=='sub'&&u){nxs9.style.display='';nxh9.style.display='none';const o=Math.round(u.o2??100),k=Math.ceil(o/10);
   nxs9.innerHTML=`深度 <b>${DN9[u.d??1]}</b> [C浅く / Z深く]<br>酸素 <b style="color:${o>40?'#7fffd4':o>15?'#ffb020':'#ff3344'}">${'▮'.repeat(k)}${'▯'.repeat(10-k)} ${o}%</b>${u.lock?' (換気中)':''}<br>ミサイル ${u.miss} / 魚雷 ${u.tp??8} / デコイ ${u.dec}`}
- else{nxs9.style.display='none';nxh9.style.display='';const b=ships.filter(s=>s.t=='haya');
-  nxh9.innerHTML='ミサイル艇: '+b.map(s=>s.n.replace('ミサイル艇','')+' '+(s.dead?'沈没':Math.round(s.hp)+'% SSM'+(s.ssm??'-'))).join(' / ')+'<br>もがみ/まや SSM '+(mogami.ssm??'-')+'/'+(maya.ssm??'-')+' ・ F-35B 兵装 '+f35s.map(f=>f.bm??2).join('/')}};
+ else{nxs9.style.display='none';nxh9.style.display='';const b=ships.filter(s=>s.t=='akiz');
+  nxh9.innerHTML='あきづき: '+b.map(s=>s.dead?'沈没':Math.round(s.hp)+'% SAM'+(s.sam??'-')+'/24 ASROC'+(s.asr??'-')+'/8 SSM'+(s.ssm??'-')+'/8 魚雷'+(s.tor??'-')+'/12').join(' / ')+'<br>もがみ/まや SSM '+(mogami.ssm??'-')+'/'+(maya.ssm??'-')+' ・ F-35B 兵装 '+f35s.map(f=>f.bm??2).join('/')}};
 
 // ===== BLOCK v10: モデリング最終強化 / ゲームバランス / 補給(航空機=満タン・艦船=一部) =====
 const poly10=(p,f)=>{ctx.fillStyle=f;ctx.beginPath();p.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fill()};
@@ -765,9 +765,9 @@ const _s14=start;start=function(){_s14.apply(this,arguments);if(SM&&!NET.on)addB
 const _so14=startOnline;startOnline=function(h,m){_so14(h,m);if(!m)addBots13()};
 // 艦隊AI: プレイヤーが倒れても友軍AIの潜水艦を追跡 / 観戦カメラ
 aiFleet=function(){if(mogami.dead||!AIF)return;const A=AIF,R=[.7,1,1.5][diff()],t0=subs.filter(u=>u.alive&&u.det>0).sort((a,b)=>D(a,mogami)-D(b,mogami))[0];
- if(t0)A.lk={x:t0.x,y:t0.y};A.pt+=.004;const rr=900+600*Math.sin(A.pt*.3),tg=A.lk||{x:Math.cos(A.pt)*rr,y:Math.sin(A.pt)*rr},dx=tg.x-mogami.x,dy=tg.y-mogami.y,d=Math.hypot(dx,dy)||1,k=d<250?0:(t0?1:.6);joy={x:dx/d*k,y:dy/d*k};
+ if(t0)A.lk={x:t0.x,y:t0.y};A.pt+=.004;const rr=900+600*Math.sin(A.pt*.3),tg=A.lk||{x:Math.cos(A.pt)*rr,y:Math.sin(A.pt)*rr},dx=tg.x-mogami.x,dy=tg.y-mogami.y,d=Math.hypot(dx,dy)||1,k=t0?(d<1700?-.6:d<2200?0:1):(d<250?0:.6);joy={x:dx/d*k,y:dy/d*k};
  if(--A.sc<=0){A.sc=Math.round(700/R);sonar();logm('敵艦隊: アクティブソナー照射(探信音を探知)',1)}
- if(A.fc>0)A.fc--;if(t0&&A.fc<=0){const r=D(t0,mogami);if(r<800){fire(0);A.fc=Math.round(200/R)}else if(r<2300){fire(1);A.fc=Math.round(300/R)}}
+ if(A.fc>0)A.fc--;if(t0&&A.fc<=0){const r=D(t0,mogami);if(r<1400){fire(0);A.fc=Math.round(200/R)}else if(r<4200){fire(1);A.fc=Math.round(300/R)}}
  if(!t0&&p1cd<=0&&Math.random()<.002)p1()};
 const _fc14=focus;focus=function(){if(role=='sub'&&!subs.find(u=>u.human)&&subs[0]){cam.x=subs[0].x;cam.y=subs[0].y}else _fc14()};
 // 友軍ラベル
@@ -805,6 +805,61 @@ const _s15=start;start=function(){_s15.apply(this,arguments);p1l=[]};
 {const sm=$('bp').querySelector('small');if(sm)sm.textContent='[B] 出撃: 上空を飛行しレーダー/MAD/ソノブイ'}
 const _dw15=draw;draw=function(){_dw15();p1l.forEach(p=>{if(NET.on&&!NET.host){p.x+=Math.cos(p.a)*p.v;p.y+=Math.sin(p.a)*p.v;p.t++}p.draw()});
  if(state!='title'){const k=85/3400;p1l.forEach(p=>{let dx=(p.x-cam.x)*k,dy=(p.y-cam.y)*k;const d=Math.hypot(dx,dy);if(d>82){dx*=82/d;dy*=82/d}sc.fillStyle='#ffe066';sc.beginPath();sc.arc(85+dx,85+dy,2.6,0,TAU);sc.fill()})}};
+
+// ===== BLOCK v16: はやぶさ型×2を削除 → あきづき型護衛艦(DD-115)×1 =====
+SHAPE.akiz=[[0,-82],[20,-24],[20,64],[-20,64],[-20,-24]];COL.akiz=['#46586a','#1f2a35'];HIST.akiz={L:150,bt:.0241};MUL10.akiz=.9;
+DET.akiz=function(){R('#26323f',-16,-34,32,84);
+ poly10([[-12,-26],[12,-26],[14,-6],[-14,-6]],'#5a6e84');poly10([[-10,-24],[10,-24],[10,-12],[-10,-12]],'#6c8299');
+ [[-9,-22],[3,-22]].forEach(q=>{R('#a9bbcc',q[0],q[1],6,5);R('#34465a',q[0]+.5,q[1]+.5,5,4)});R('#9fb2c6',-1.5,-30,3,10);dome10(0,-3,3);
+ poly10([[-12,-4],[12,-4],[10,12],[-10,12]],'#4e6176');R('#1e2933',-6,2,12,5);
+ ctx.save();ctx.rotate(.0);R('#10171f',-13,16,5,12);R('#10171f',8,16,5,12);ctx.restore();R('#cfd8e0',-12,17,3,10);R('#cfd8e0',9,17,3,10);
+ poly10([[-5,-62],[5,-62],[7,-54],[0,-49],[-7,-54]],'#1a232d');R('#0d141b',-1.2,-80,2.4,20);VLS(-10,-46,4,2);VLS(-10,40,4,2);dome10(0,32,3);dome10(0,-34,2.6);
+ R('#1b2530',-8,46,16,10);helipad10(54,8);num10('DD-115/116',-16,6,.5)};
+mkBoats9=function(){['護衛艦あきづき','護衛艦てるづき'].forEach((n,i)=>{const b=new Ship(mogami.x+300,mogami.y+(i?-500:500),n,'akiz');Object.assign(b,{max:3.8,bm:3.8,turn:.0241,bt:.0241,sam:24,asr:8,vla:0,tor:12,ssm:8,nx:3,ac:0,gc:0,rc:0,ph:100,pa:0,range:850,bi:i});ships.push(b)})};
+const _F16=FORM;FORM=function(s){if(s.t!='akiz')return _F16(s);const b=blm.find(m=>Math.hypot(m.tx-s.x,m.ty-s.y)<340);
+ if(b){const a=Math.atan2(s.y-b.ty,s.x-b.tx);return [s.x+Math.cos(a)*700-mogami.x,s.y+Math.sin(a)*700-mogami.y]}
+ const u=subs.filter(q=>q.alive&&q.det>0).sort((p,q)=>D(p,s)-D(q,s))[0];
+ if(u){const a=Math.atan2(s.y-u.y,s.x-u.x);return [u.x+Math.cos(a)*1500-mogami.x,u.y+Math.sin(a)*1500-mogami.y]}
+ const o=[200,s.bi?-520:520],c=Math.cos(mogami.a),n=Math.sin(mogami.a);return [c*o[0]-n*o[1],n*o[0]+c*o[1]]};
+const _rs16=resup9;resup9=function(){_rs16();const up=(o,f,n,c)=>{o[f]=Math.min(c,(o[f]||0)+n)};ships.filter(s=>s.t=='akiz').forEach(k=>{up(k,'sam',12,24);up(k,'asr',4,8);up(k,'tor',4,12);up(k,'ssm',4,8)})};
+const _ex16=extraSim;extraSim=function(){ships.filter(s=>s.t=='akiz').forEach(ak=>{if(ak&&!ak.dead){const tg=subs.filter(u=>u.alive&&u.det>0).sort((a,b)=>D(a,ak)-D(b,ak))[0];
+ if(tg&&ak.tor>0&&!(ak.tc6>0)&&D(tg,ak)<900){torps.push({x:ak.x,y:ak.y,a:Math.atan2(tg.y-ak.y,tg.x-ak.x),v:4.8,fly:false,fd:0,life:650,alive:true});ak.tor--;ak.tc6=300;ST.fired++;logm(ak.n+': 324mm短魚雷 発射!');snd('launch')}if(ak.tc6>0)ak.tc6--}});_ex16()};
+
+// ===== BLOCK v17: ヘリをまや・あきづき型にも搭載 (もがみ1・まや1・あきづき各1・いずも5) =====
+heli=function(){if(state!='playing'||paused)return;const cap={mogami:1,maya:1,akiz:1,izumo:5};
+ const c=[mogami,maya,...ships.filter(s=>s.t=='akiz'),izumo].find(s=>!s.dead&&helis.filter(h=>h.s==s).length<cap[s.t]);
+ if(!c){logm('警報: ヘリ運用上限',1);return}helis.push(new Heli(c));logm(c.n+': SH-60K 発艦');snd('launch')};
+// ===== BLOCK v18: 酸素補給のための浮上が必須(プレイヤー・AI共通) =====
+const _ex18=extraSim;extraSim=function(){
+ subs.forEach(u=>{if(!u.alive)return;
+  if(!u.human){if(u.o2===undefined||u.o2===100&&!u.o18){u.o18=1;u.o2=100-rand(0,25)}const dr=[-.12,.006,.02][u.d??2]*(u.boss?.6:1);u.o2=cl(u.o2-dr,0,100);
+   if(u.o2<22&&!u.sf){u.sf=1;logm((u.boss?'オハイオ級':'敵潜')+'が酸素補給のため浮上を開始 — 攻撃のチャンス!',1)}if(u.sf&&u.o2>=96)u.sf=0}
+  else{const o=u.o2??100;if(o<30&&!u.w30){u.w30=1;logm('酸素残量30%: 浮上して換気してください([C]で浅く / 浮上で回復)',1);snd('alarm')}
+   if(o<15&&!u.w15){u.w15=1;logm('酸素残量15%! 至急浮上',1);snd('alarm')}if(o>60){u.w30=0;u.w15=0}}});
+ _ex18()};
+const _s18=start;start=function(){_s18.apply(this,arguments);subs.forEach(u=>{u.sf=0;u.w30=0;u.w15=0})};
+// ===== BLOCK v19: 艦隊行動(対潜包囲陣・スクリーン) / 交戦距離を延長 =====
+const _F19=FORM;FORM=function(s){if(s.t=='mogami'||s.dead)return _F19(s);
+ const thr=[...missiles.filter(m=>m.alive&&m.t===s&&D(m,s)<1500),...(typeof etorps!='undefined'?etorps.filter(q=>q.alive&&D(q,s)<650):[])].sort((a,b)=>D(a,s)-D(b,s))[0],bl=blm.find(m=>Math.hypot(m.tx-s.x,m.ty-s.y)<340);
+ if(thr||bl){const o=thr||{x:bl.tx,y:bl.ty},a=Math.atan2(s.y-o.y,s.x-o.x)+(thr?Math.PI/2*(s.bi?-1:1):0);return [s.x+Math.cos(a)*700-mogami.x,s.y+Math.sin(a)*700-mogami.y]}
+ const u=subs.filter(q=>q.alive&&q.det>0).sort((a,b)=>D(a,mogami)-D(b,mogami))[0];
+ if(u&&(s.t=='maya'||s.t=='akiz')){const base=Math.atan2(mogami.y-u.y,mogami.x-u.x),ang=base+(s.t=='akiz'?(s.bi?-.5:.5):0),R=s.t=='maya'?2700:2400;
+  if(!s.sc19){s.sc19=1;logm(s.n+': 対潜スクリーン展開(距離約'+R+'を保つ)')}return [u.x+Math.cos(ang)*R-mogami.x,u.y+Math.sin(ang)*R-mogami.y]}
+ if(!u)s.sc19=0;
+ if(u&&s.t=='izumo'&&D(u,s)<3600){const a=Math.atan2(s.y-u.y,s.x-u.x);return [s.x+Math.cos(a)*800-mogami.x,s.y+Math.sin(a)*800-mogami.y]}
+ return _F19(s)};
+
+// ===== BLOCK v20: 僚艦防空(あきづき=まや/てるづき=いずもを護衛) / 交戦距離のさらなる延長 =====
+const _F20=FORM;FORM=function(s){if(s.t!='akiz'||s.dead)return _F20(s);
+ const E=s.bi?izumo:maya,T=E&&!E.dead?E:mogami,nm=T.n.replace(/^(ヘリ空母|イージス艦|護衛艦)/,'');
+ if(missiles.some(m=>m.alive&&m.t===s&&D(m,s)<1500)||(typeof etorps!='undefined'&&etorps.some(q=>q.alive&&D(q,s)<650))||blm.some(m=>Math.hypot(m.tx-s.x,m.ty-s.y)<340))return _F20(s);
+ const th=missiles.filter(m=>m.alive&&m.t===T&&D(m,T)<2200).sort((a,b)=>D(a,T)-D(b,T))[0];
+ if(th){const a=Math.atan2(th.y-T.y,th.x-T.x);if(!s.aa20){s.aa20=1;logm(s.n+': '+nm+'の僚艦防空 — 脅威方位へ展開')}return [T.x+Math.cos(a)*420-mogami.x,T.y+Math.sin(a)*420-mogami.y]}
+ if(s.aa20){s.aa20=0}if(!s.es20){s.es20=1;logm(s.n+': '+nm+'の僚艦として防空・対潜を担当')}
+ const c=Math.cos(T.a),n=Math.sin(T.a),o=s.bi?[60,-520]:[60,480];return [T.x+c*o[0]-n*o[1]-mogami.x,T.y+n*o[0]+c*o[1]-mogami.y]};
+const _sw20=spawnWave;spawnWave=function(){_sw20();subs.forEach(u=>{if(u.human)return;const a=Math.atan2(u.y-mogami.y,u.x-mogami.x),d=rand(3400,4600);u.x=mogami.x+Math.cos(a)*d;u.y=mogami.y+Math.sin(a)*d})};
+const _su20=Sub.prototype.update;Sub.prototype.update=function(){_su20.call(this);if(!this.human){let b=null;for(const s of ships)if(!s.dead&&(!b||D(s,this)<D(b,this)))b=s;const lim=this.boss?3400:1900;if(b&&D(b,this)<lim)this.a+=cl(nrm(Math.atan2(this.y-b.y,this.x-b.x)-this.a),-.03,.03)}};
+const _s20=start;start=function(){_s20.apply(this,arguments);ships.forEach(s=>{s.es20=0;s.aa20=0})};
 
 function loop(){update();draw();requestAnimationFrame(loop)}
 show('NAVAL OPS 現代艦隊対潜・対空演習',$('od').innerHTML,'作戦開始',start);requestAnimationFrame(loop);
